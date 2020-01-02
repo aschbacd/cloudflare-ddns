@@ -1,14 +1,12 @@
 package main
 
 import (
-	"bytes"
-	"encoding/json"
 	"fmt"
-	externalip "github.com/glendc/go-external-ip"
 	"io/ioutil"
 	"log"
-	"net/http"
-	"strconv"
+
+	"github.com/cloudflare/cloudflare-go"
+	externalip "github.com/glendc/go-external-ip"
 )
 
 func update(configuration Configuration) {
@@ -28,12 +26,12 @@ func update(configuration Configuration) {
 	// IP address changed
 	if string(savedIP) != currentIP.String() {
 		// Message
-		fmt.Println("Cloudflare DDNS\n")
+		fmt.Println("Cloudflare DDNS")
 		fmt.Println("Updating dns records ...")
 
 		// Update dns records
 		for _, zone := range configuration.Zones {
-			for _, record := range zone.DnsRecords {
+			for _, record := range zone.DNSRecords {
 				setNewIP(configuration.AuthEmail, configuration.AuthKey, zone, record, currentIP.String())
 			}
 		}
@@ -49,79 +47,21 @@ func update(configuration Configuration) {
 	}
 }
 
-func setNewIP(authEmail string, authKey string, zone Zone, record DnsRecord, address string) {
-	// Record data
-	var data = make(map[string]interface{})
-	data["type"] = record.Type
-	data["name"] = record.Name
-	data["content"] = address
-	data["ttl"] = record.TTL
-	data["proxied"] = record.Proxied
-
-	// Marshal data
-	dataJson, err := json.Marshal(data)
+func setNewIP(authEmail string, authKey string, zone Zone, record DNSRecord, address string) {
+	// Cloudflare client
+	api, err := cloudflare.New(authKey, authEmail)
 	if err != nil {
-		log.Fatal(err.Error())
+		log.Fatal("authentication failed")
 	}
 
-	// Create request
-	client := &http.Client{}
-	uri := "https://api.cloudflare.com/client/v4/zones/" + zone.ID + "/dns_records/" + record.ID
-	req, _ := http.NewRequest("PUT", uri, bytes.NewBuffer(dataJson))
+	// New dns record
+	dnsRecord := cloudflare.DNSRecord{ID: record.ID, Type: record.Type, Name: record.Name, Proxied: record.Proxied, TTL: record.TTL, Content: address}
 
-	// Set headers
-	req.Header.Set("X-Auth-Email", authEmail)
-	req.Header.Set("X-Auth-Key", authKey)
-	req.Header.Set("Content-Type", "application/json")
-
-	// Run request
-	res, err := client.Do(req)
+	// Update dns record
+	err = api.UpdateDNSRecord(zone.ID, record.ID, dnsRecord)
 	if err != nil {
-		log.Fatal(err.Error())
+		log.Fatal("could not update " + record.Name)
 	}
 
-	// Check result
-	if res.StatusCode == 200 {
-		defer res.Body.Close()
-
-		body, err := ioutil.ReadAll(res.Body)
-		if err != nil {
-			log.Println(err.Error())
-		}
-
-		// Unmarshal json
-		var cloudflareResult CloudflareDnsRecord
-		err = json.Unmarshal(body, &cloudflareResult)
-		if err != nil {
-			log.Println(err.Error())
-		}
-
-		if cloudflareResult.Result.Content == address {
-			fmt.Println("DNS record " + cloudflareResult.Result.Name + " successfully updated")
-		} else {
-			fmt.Println("DNS record did not update correctly")
-		}
-
-	} else {
-		defer res.Body.Close()
-
-		body, err := ioutil.ReadAll(res.Body)
-		if err != nil {
-			log.Println(err.Error())
-		}
-
-		// Unmarshal json
-		var cloudflareResult CloudflareDnsRecord
-		err = json.Unmarshal(body, &cloudflareResult)
-		if err != nil {
-			log.Println(err.Error())
-		}
-
-		// Check for errors
-		if cloudflareResult.Success != true {
-			for _, err := range cloudflareResult.Errors {
-				log.Println(strconv.Itoa(err.Code) + " - " + err.Message)
-			}
-		}
-	}
+	fmt.Println("DNS record " + record.Name + " successfully updated")
 }

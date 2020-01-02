@@ -8,14 +8,16 @@ import (
 	"os"
 )
 
+// Zone represents a domain
 type Zone struct {
 	ID         string      `json:"id"`
 	Name       string      `json:"name"`
 	Status     string      `json:"status"`
-	DnsRecords []DnsRecord `json:"dns_records"`
+	DNSRecords []DNSRecord `json:"dns_records"`
 }
 
-type DnsRecord struct {
+// DNSRecord represents a subdomain
+type DNSRecord struct {
 	ID      string `json:"id"`
 	Type    string `json:"type"`
 	Name    string `json:"name"`
@@ -23,10 +25,11 @@ type DnsRecord struct {
 	TTL     int    `json:"ttl"`
 }
 
+// Configuration represents the configuration json file
 type Configuration struct {
-	AuthEmail	string	`json:"auth_email"`
-	AuthKey		string	`json:"auth_key"`
-	Zones		[]Zone	`json:"zones"`
+	AuthEmail string `json:"auth_email"`
+	AuthKey   string `json:"auth_key"`
+	Zones     []Zone `json:"zones"`
 }
 
 func main() {
@@ -35,9 +38,9 @@ func main() {
 
 	if len(arguments) == 0 {
 		// Load configuration
-		configurationJson, err := ioutil.ReadFile("configuration.json")
+		configurationJSON, err := ioutil.ReadFile("configuration.json")
 		if err != nil {
-			fmt.Println("Cloudflare DDNS\n")
+			fmt.Println("Cloudflare DDNS")
 			fmt.Println("no configuration file available")
 			fmt.Println("run \"" + os.Args[0] + " --configure\" to create a configuration file")
 			os.Exit(1)
@@ -45,7 +48,7 @@ func main() {
 
 		// Unmarshal json
 		var configuration Configuration
-		err = json.Unmarshal(configurationJson, &configuration)
+		err = json.Unmarshal(configurationJSON, &configuration)
 		if err != nil {
 			fmt.Println("please check configuration file syntax")
 			log.Fatal(err.Error())
