@@ -1,6 +1,6 @@
-module main
+module github.com/aschbacd/cloudflare-ddns
 
-go 1.13
+go 1.14
 
 require (
 	github.com/cloudflare/cloudflare-go v0.11.0
