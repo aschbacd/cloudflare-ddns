@@ -9,8 +9,9 @@ import (
 
 // rootCmd represents the base command when called without any subcommands
 var rootCmd = &cobra.Command{
-	Use:   "cloudflare-ddns",
-	Short: "Utility to use Cloudflare as a ddns provider",
+	Use:     "cloudflare-ddns",
+	Version: "1.2.0",
+	Short:   "Utility to use Cloudflare as a ddns provider",
 }
 
 // Execute adds all child commands to the root command and sets flags appropriately.
