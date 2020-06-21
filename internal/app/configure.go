@@ -1,31 +1,29 @@
-package main
+package app
 
 import (
 	"bufio"
-	"encoding/json"
 	"fmt"
-	"io/ioutil"
-	"log"
 	"os"
 	"sort"
 	"strconv"
 	"strings"
 
+	"github.com/aschbacd/cloudflare-ddns/internal/utils"
 	"github.com/cloudflare/cloudflare-go"
 )
 
-func configure() {
-	// Banner
-	println("Cloudflare DDNS - Configurator\n")
+// CreateConfiguration creates a configuration file including selected dns records
+func CreateConfiguration(filePath string, fileMode os.FileMode) error {
+	// Stdin reader
+	reader := bufio.NewReader(os.Stdin)
 
 	// Authentication email
-	reader := bufio.NewReader(os.Stdin)
 	fmt.Print("Enter authentication email: ")
 	authEmail, _ := reader.ReadString('\n')
 	authEmail = strings.TrimRight(authEmail, "\r\n")
 
 	if authEmail == "" {
-		log.Fatal("authentication email cannot be empty")
+		return fmt.Errorf("authentication email cannot be empty")
 	}
 
 	// Authentication key
@@ -34,24 +32,28 @@ func configure() {
 	authKey = strings.TrimRight(authKey, "\r\n")
 
 	if authKey == "" {
-		log.Fatal("authentication key cannot be empty")
+		return fmt.Errorf("authentication key cannot be empty")
 	}
 
 	// Cloudflare client
 	api, err := cloudflare.New(authKey, authEmail)
 	if err != nil {
-		log.Fatal("authentication failed")
+		return err
 	}
 
+	// List zones
 	zones, err := api.ListZones()
 	if err != nil {
-		log.Fatal("authentication failed")
+		return err
 	}
 
-	fmt.Println("\nChoose which zones shall be used, if multiple zones are used separate them using commas:")
-
-	for i, zone := range zones {
-		fmt.Print("[" + strconv.Itoa(i+1) + "] " + zone.Name + "\n")
+	if len(zones) > 0 {
+		fmt.Println("\nChoose which zones shall be used, if multiple zones are used, separate them using commas:")
+		for i, zone := range zones {
+			fmt.Print("[" + strconv.Itoa(i+1) + "] " + zone.Name + "\n")
+		}
+	} else {
+		return fmt.Errorf("no zones available for this account")
 	}
 
 	// User selection
@@ -62,32 +64,33 @@ func configure() {
 	// Get selected indexes
 	zoneSelectionIndexes, err := getSelectedIndexes(zoneSelection, len(zones))
 	if err != nil {
-		log.Fatal(err.Error())
+		return err
 	}
 
 	// Check if items selected
 	if len(zoneSelectionIndexes) < 0 {
-		log.Fatal("select min. 1 zone")
+		return fmt.Errorf("min. 1 zone must be selected")
 	}
 
-	// Choose DNS entries
+	// DNS entries
 	var selectedZones []Zone
 	for _, i := range zoneSelectionIndexes {
 		// Zone
 		zone := Zone{ID: zones[i].ID, Name: zones[i].Name, Status: zones[i].Status}
 
-		var dnsRecord cloudflare.DNSRecord
-
 		// DNS records
-		dnsRecords, err := api.DNSRecords(zones[i].ID, dnsRecord)
+		dnsRecords, err := api.DNSRecords(zones[i].ID, cloudflare.DNSRecord{})
 		if err != nil {
-			log.Fatal(err.Error())
+			return err
 		}
 
-		fmt.Println("\nChoose dns records for " + zones[i].Name + ", if multiple dns records are used separate them using commas:\n")
-
-		for i, dnsRecord := range dnsRecords {
-			fmt.Print("[" + strconv.Itoa(i+1) + "] " + dnsRecord.Name + "\n")
+		if len(dnsRecords) > 0 {
+			fmt.Println("\nChoose dns records for " + zones[i].Name + ", if multiple dns records are used separate them using commas:\n")
+			for i, dnsRecord := range dnsRecords {
+				fmt.Print("[" + strconv.Itoa(i+1) + "] " + dnsRecord.Name + "\n")
+			}
+		} else {
+			fmt.Println("no dns records for " + zone.Name)
 		}
 
 		// User selection
@@ -97,7 +100,7 @@ func configure() {
 
 		dnsRecordSelectionIndexes, err := getSelectedIndexes(dnsRecordSelection, len(dnsRecords))
 		if err != nil {
-			log.Fatal(err.Error())
+			return err
 		}
 
 		// Add dns records
@@ -114,30 +117,24 @@ func configure() {
 	}
 
 	if len(selectedZones) == 0 {
-		log.Fatal("no dns records have been selected")
+		return fmt.Errorf("no dns records have been selected")
 	}
 
-	// Create configuration file
+	// Create configuration object
 	var configuration Configuration
-
 	configuration.AuthEmail = authEmail
 	configuration.AuthKey = authKey
 	configuration.Zones = selectedZones
 
-	configurationJSON, err := json.MarshalIndent(configuration, "", "    ")
-	if err != nil {
-		log.Fatal("error")
-	}
-
 	// Write configuration file
-	err = ioutil.WriteFile("configuration.json", configurationJSON, 0644)
-	if err != nil {
-		log.Fatal(err.Error())
+	if err := configuration.WriteToFile(filePath, fileMode); err != nil {
+		return err
 	}
 
-	fmt.Println("\nConfiguration file has been created successfully.")
+	return nil
 }
 
+// getSelectedIndexes returns a slice of integers by filtering a given user input string
 func getSelectedIndexes(selection string, length int) ([]int, error) {
 	// Split into slice
 	selectionStringSlice := strings.Split(selection, ",")
@@ -161,7 +158,7 @@ func getSelectedIndexes(selection string, length int) ([]int, error) {
 			}
 
 			// Check if slice already contains item
-			if !contains(selectedItems, itemInt) {
+			if !utils.ContainsInt(selectedItems, itemInt) {
 				selectedItems = append(selectedItems, itemInt)
 			}
 		}
@@ -175,14 +172,4 @@ func getSelectedIndexes(selection string, length int) ([]int, error) {
 	// Sort and return
 	sort.Ints(selectedIndexes)
 	return selectedIndexes, nil
-}
-
-// Checks if slice contains integer
-func contains(s []int, e int) bool {
-	for _, a := range s {
-		if a == e {
-			return true
-		}
-	}
-	return false
 }

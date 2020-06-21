@@ -1,67 +1,71 @@
-package main
+package app
 
 import (
 	"fmt"
 	"io/ioutil"
-	"log"
+	"os"
 
 	"github.com/cloudflare/cloudflare-go"
 	externalip "github.com/glendc/go-external-ip"
 )
 
-func update(configuration Configuration) {
+// UpdateDNSRecords updates all dns records in a configuration (if necessary)
+func UpdateDNSRecords(configuration Configuration, savedIPPath string, savedIPFileMode os.FileMode) error {
 	// Get current ip address
 	consensus := externalip.DefaultConsensus(nil, nil)
 	currentIP, err := consensus.ExternalIP()
 	if err != nil {
-		log.Fatal(err.Error())
+		return err
 	}
 
 	// Get stored ip address
-	savedIP, err := ioutil.ReadFile("address.txt")
+	savedIP, err := ioutil.ReadFile(savedIPPath)
 	if err != nil {
 		savedIP = []byte("")
 	}
 
 	// IP address changed
 	if string(savedIP) != currentIP.String() {
-		// Message
-		fmt.Println("Cloudflare DDNS")
-		fmt.Println("Updating dns records ...")
-
 		// Update dns records
+		fmt.Println("Updating dns records ...")
 		for _, zone := range configuration.Zones {
 			for _, record := range zone.DNSRecords {
-				setNewIP(configuration.AuthEmail, configuration.AuthKey, zone, record, currentIP.String())
+				if err := setNewIP(configuration.AuthEmail, configuration.AuthKey, zone, record, currentIP.String()); err != nil {
+					return err
+				}
 			}
 		}
 
 		// Write new ip address
-		err = ioutil.WriteFile("address.txt", []byte(currentIP.String()), 0644)
+		err = ioutil.WriteFile(savedIPPath, []byte(currentIP.String()), savedIPFileMode)
 		if err != nil {
-			log.Fatal(err.Error())
+			return err
 		}
 	} else {
 		// Message
 		fmt.Println("Nothing to do here ...")
 	}
+
+	return nil
 }
 
-func setNewIP(authEmail string, authKey string, zone Zone, record DNSRecord, address string) {
+// setNewIP replaces the current ip with the one supplied as an argument
+func setNewIP(authEmail string, authKey string, zone Zone, record DNSRecord, address string) error {
 	// Cloudflare client
 	api, err := cloudflare.New(authKey, authEmail)
 	if err != nil {
-		log.Fatal("authentication failed")
+		return err
 	}
 
-	// New dns record
+	// DNS record
 	dnsRecord := cloudflare.DNSRecord{ID: record.ID, Type: record.Type, Name: record.Name, Proxied: record.Proxied, TTL: record.TTL, Content: address}
 
 	// Update dns record
-	err = api.UpdateDNSRecord(zone.ID, record.ID, dnsRecord)
-	if err != nil {
-		log.Fatal("could not update " + record.Name)
+	if err = api.UpdateDNSRecord(zone.ID, record.ID, dnsRecord); err != nil {
+		return err
 	}
 
 	fmt.Println("DNS record " + record.Name + " successfully updated")
+
+	return nil
 }
