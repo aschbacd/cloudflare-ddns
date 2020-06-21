@@ -76,7 +76,7 @@ func CreateConfiguration(filePath string, fileMode os.FileMode) error {
 	var selectedZones []Zone
 	for _, i := range zoneSelectionIndexes {
 		// Zone
-		zone := Zone{ID: zones[i].ID, Name: zones[i].Name, Status: zones[i].Status}
+		zone := Zone{ID: zones[i].ID, Name: zones[i].Name}
 
 		// DNS records
 		dnsRecords, err := api.DNSRecords(zones[i].ID, cloudflare.DNSRecord{})
@@ -106,7 +106,7 @@ func CreateConfiguration(filePath string, fileMode os.FileMode) error {
 		// Add dns records
 		var selectedDNSRecords []DNSRecord
 		for _, i := range dnsRecordSelectionIndexes {
-			selectedDNSRecords = append(selectedDNSRecords, DNSRecord{ID: dnsRecords[i].ID, Type: dnsRecords[i].Type, Name: dnsRecords[i].Name, Proxied: dnsRecords[i].Proxied, TTL: dnsRecords[i].TTL})
+			selectedDNSRecords = append(selectedDNSRecords, DNSRecord{ID: dnsRecords[i].ID, Type: dnsRecords[i].Type, Name: dnsRecords[i].Name})
 		}
 
 		// Add zone to selected zones

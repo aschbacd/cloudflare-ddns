@@ -58,7 +58,7 @@ func setNewIP(authEmail string, authKey string, zone Zone, record DNSRecord, add
 	}
 
 	// DNS record
-	dnsRecord := cloudflare.DNSRecord{ID: record.ID, Type: record.Type, Name: record.Name, Proxied: record.Proxied, TTL: record.TTL, Content: address}
+	dnsRecord := cloudflare.DNSRecord{ID: record.ID, Content: address}
 
 	// Update dns record
 	if err = api.UpdateDNSRecord(zone.ID, record.ID, dnsRecord); err != nil {

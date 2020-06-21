@@ -1,12 +1,13 @@
 package app
 
 import (
-	"encoding/json"
 	"io/ioutil"
 	"os"
+
+	"gopkg.in/yaml.v3"
 )
 
-// Configuration represents the configuration json file
+// Configuration represents the configuration yaml file
 type Configuration struct {
 	AuthEmail string `json:"auth_email"`
 	AuthKey   string `json:"auth_key"`
@@ -17,30 +18,27 @@ type Configuration struct {
 type Zone struct {
 	ID         string      `json:"id"`
 	Name       string      `json:"name"`
-	Status     string      `json:"status"`
 	DNSRecords []DNSRecord `json:"dns_records"`
 }
 
 // DNSRecord represents a subdomain
 type DNSRecord struct {
-	ID      string `json:"id"`
-	Type    string `json:"type"`
-	Name    string `json:"name"`
-	Proxied bool   `json:"proxied"`
-	TTL     int    `json:"ttl"`
+	ID   string `json:"id"`
+	Type string `json:"type"`
+	Name string `json:"name"`
 }
 
 // ReadConfigurationFile parses a given file and returns a configuration object
 func ReadConfigurationFile(filePath string) (*Configuration, error) {
 	// Read configuration file
-	configurationJSON, err := ioutil.ReadFile(filePath)
+	configurationYaml, err := ioutil.ReadFile(filePath)
 	if err != nil {
 		return nil, err
 	}
 
-	// Unmarshal json
+	// Unmarshal yaml
 	var configuration Configuration
-	if err = json.Unmarshal(configurationJSON, &configuration); err != nil {
+	if err = yaml.Unmarshal(configurationYaml, &configuration); err != nil {
 		return nil, err
 	}
 
@@ -49,14 +47,14 @@ func ReadConfigurationFile(filePath string) (*Configuration, error) {
 
 // WriteToFile writes a given configuration object to a specified file path
 func (configuration *Configuration) WriteToFile(filePath string, fileMode os.FileMode) error {
-	// Marshal json
-	configurationJSON, err := json.MarshalIndent(configuration, "", "    ")
+	// Marshal yaml
+	configurationYaml, err := yaml.Marshal(configuration)
 	if err != nil {
 		return err
 	}
 
 	// Write configuration file
-	if err = ioutil.WriteFile(filePath, configurationJSON, fileMode); err != nil {
+	if err = ioutil.WriteFile(filePath, configurationYaml, fileMode); err != nil {
 		return err
 	}
 

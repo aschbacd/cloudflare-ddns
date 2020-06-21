@@ -39,5 +39,5 @@ var configureCmd = &cobra.Command{
 
 func init() {
 	rootCmd.AddCommand(configureCmd)
-	configureCmd.PersistentFlags().StringP("output", "o", "configuration.json", "output file path")
+	configureCmd.PersistentFlags().StringP("output", "o", "configuration.yaml", "output file path")
 }

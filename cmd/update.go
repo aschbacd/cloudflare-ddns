@@ -41,6 +41,6 @@ var updateCmd = &cobra.Command{
 
 func init() {
 	rootCmd.AddCommand(updateCmd)
-	updateCmd.PersistentFlags().String("config", "configuration.json", "configuration file path")
+	updateCmd.PersistentFlags().String("config", "configuration.yaml", "configuration file path")
 	updateCmd.PersistentFlags().String("address", "address.txt", "file path for temporary ip address")
 }
