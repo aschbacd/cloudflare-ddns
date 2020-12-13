@@ -1,0 +1,21 @@
+name: GitLint
+
+on:
+  pull_request:
+
+jobs:
+  gitlint:
+    runs-on: ubuntu-latest
+    name: GitLint
+    steps:
+      - name: Lint commits, branches, and pull requests
+        uses: aschbacd/gitlint-action@v1.0.0
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          commit-message-body-max-length: 72
+          commit-message-subject-max-length: 50
+          prohibit-unknown-commit-authors: true
+          prohibit-unknown-commit-committers: true
+          re-branch-name: "[a-z]+\\/[a-z\\-0-9]+"
+          re-commit-message-subject: "^[A-Z].*((?!\\.).)$"
+          re-pull-request-title: "^[A-Z].*((?!\\.).)$"
