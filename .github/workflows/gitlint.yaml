@@ -9,7 +9,7 @@ jobs:
     name: GitLint
     steps:
       - name: Lint commits, branches, and pull requests
-        uses: aschbacd/gitlint-action@v1.0.0
+        uses: aschbacd/gitlint-action@v1.0.2
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           commit-message-body-max-length: 72
