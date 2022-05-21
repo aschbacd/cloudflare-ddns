@@ -6,5 +6,5 @@ require (
 	github.com/cloudflare/cloudflare-go v0.12.0
 	github.com/glendc/go-external-ip v0.0.0-20200601212049-c872357d968e
 	github.com/spf13/cobra v1.0.0
-	gopkg.in/yaml.v3 v3.0.0-20200615113413-eeeca48fe776
+	gopkg.in/yaml.v3 v3.0.0
 )
