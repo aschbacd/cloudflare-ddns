@@ -2,6 +2,7 @@ package app
 
 import (
 	"bufio"
+	"context"
 	"fmt"
 	"os"
 	"sort"
@@ -42,7 +43,7 @@ func CreateConfiguration(filePath string, fileMode os.FileMode) error {
 	}
 
 	// List zones
-	zones, err := api.ListZones()
+	zones, err := api.ListZones(context.Background())
 	if err != nil {
 		return err
 	}
@@ -79,13 +80,13 @@ func CreateConfiguration(filePath string, fileMode os.FileMode) error {
 		zone := Zone{ID: zones[i].ID, Name: zones[i].Name}
 
 		// DNS records
-		dnsRecords, err := api.DNSRecords(zones[i].ID, cloudflare.DNSRecord{})
+		dnsRecords, _, err := api.ListDNSRecords(context.Background(), cloudflare.ZoneIdentifier(zone.ID), cloudflare.ListDNSRecordsParams{})
 		if err != nil {
 			return err
 		}
 
 		if len(dnsRecords) > 0 {
-			fmt.Println("\nChoose dns records for " + zones[i].Name + ", if multiple dns records are used separate them using commas:\n")
+			fmt.Println("\nChoose dns records for " + zone.Name + ", if multiple dns records are used separate them using commas:\n")
 			for i, dnsRecord := range dnsRecords {
 				fmt.Print("[" + strconv.Itoa(i+1) + "] " + dnsRecord.Name + "\n")
 			}
