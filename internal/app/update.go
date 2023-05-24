@@ -1,6 +1,7 @@
 package app
 
 import (
+	"context"
 	"fmt"
 	"io/ioutil"
 	"os"
@@ -58,10 +59,15 @@ func setNewIP(authEmail string, authKey string, zone Zone, record DNSRecord, add
 	}
 
 	// DNS record
-	dnsRecord := cloudflare.DNSRecord{ID: record.ID, Content: address}
+	updateParams := cloudflare.UpdateDNSRecordParams{
+		ID:      record.ID,
+		Name:    record.Name,
+		Type:    record.Type,
+		Content: address,
+	}
 
 	// Update dns record
-	if err = api.UpdateDNSRecord(zone.ID, record.ID, dnsRecord); err != nil {
+	if _, err = api.UpdateDNSRecord(context.Background(), cloudflare.ZoneIdentifier(zone.ID), updateParams); err != nil {
 		return err
 	}
 
